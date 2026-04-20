@@ -89,78 +89,115 @@ async function drawCertificate(data) {
     loadImage(logoSrc), loadImage(signSrc), loadImage(stampSrc),
   ]);
 
-  // ── Logo: left side, 105px tall (50% bigger than 70), full opacity ──
-  const logoH = 105;
+  const topPad = 30;
+
+  // ── Logo: left side, vertically aligned with CERTIFICATE+OF ACHIEVEMENT block ──
+  const logoH = 130;
   const logoX = 28;
-  const logoY = 18;
+  const logoY = topPad + 18;
   if (logoImg) {
     const logoW = (logoImg.width / logoImg.height) * logoH;
     ctx.globalAlpha = 1.0;
     ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
-    ctx.globalAlpha = 1;
   }
 
   // ── CERTIFICATE — centered on full page width ──
   ctx.fillStyle = "#1a1a1a";
   ctx.font = "900 44px Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("CERTIFICATE", cx, 66);
+  ctx.fillText("CERTIFICATE", cx, topPad + 66);
 
   // OF ACHIEVEMENT
   ctx.fillStyle = "#555555";
   ctx.font = "13px Arial, sans-serif";
-  ctx.fillText("OF ACHIEVEMENT", cx, 82);
+  ctx.fillText("OF ACHIEVEMENT", cx, topPad + 88);
 
   // Gold divider
   ctx.strokeStyle = "#c9a84c"; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cx-70, 91); ctx.lineTo(cx-8, 91); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx+8, 91); ctx.lineTo(cx+70, 91); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-70, topPad+100); ctx.lineTo(cx-8, topPad+100); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+8, topPad+100); ctx.lineTo(cx+70, topPad+100); ctx.stroke();
   ctx.fillStyle = "#c9a84c";
   ctx.font = "12px Arial";
-  ctx.fillText("✦", cx, 95);
+  ctx.fillText("✦", cx, topPad + 104);
 
   // ── Presented to ──
   ctx.fillStyle = "#555555";
   ctx.font = "12px Georgia, serif";
-  ctx.fillText("This certificate is proudly presented to", cx, 112);
+  ctx.fillText("This certificate is proudly presented to", cx, topPad + 124);
 
   // ── Student name ──
   ctx.fillStyle = "#1a1a1a";
   ctx.font = "italic 700 38px Georgia, serif";
-  ctx.fillText(studentName || "", cx, 154);
+  ctx.fillText(studentName || "", cx, topPad + 168);
 
   // ── Dotted separator ──
   const dotStart = cx - 125;
   for (let i = 0; i < 50; i++) {
     ctx.fillStyle = i % 6 === 0 ? "#c9a84c" : "rgba(201,168,76,0.35)";
-    ctx.fillRect(dotStart + i * 5, 162, 4, 1.5);
+    ctx.fillRect(dotStart + i * 5, topPad + 178, 4, 1.5);
   }
 
-  // ── Body text ──
-  const bodyFull = [
-    registrationNo ? `${registrationNo} — ` : "",
-    `of ${collegeName} for successfully completing ${description} `,
-    `"${programName}" `,
-    `conducted by TechSign Solutions Pvt Ltd (TSS) from ${startDate} to ${endDate}.`,
-  ].join("");
+  // ── Body text with bold segments ──
+  // Segments: { text, bold }
+  const segments = [
+    { text: "of ", bold: false },
+    { text: collegeName, bold: true },
+    { text: " for successfully completing ", bold: false },
+    { text: description, bold: false },
+    { text: " ", bold: false },
+    { text: `"${programName}"`, bold: true },
+    { text: " conducted by ", bold: false },
+    { text: "TechSign Solutions Pvt Ltd (TSS).", bold: true },
+  ];
 
-  ctx.font = "14px Georgia, serif";
-  ctx.fillStyle = "#333333";
-  ctx.textAlign = "center";
+  const normalFont = "14px Georgia, serif";
+  const boldFont   = "bold 14px Georgia, serif";
+  const maxLineW   = 620;
+  ctx.fillStyle    = "#333333";
+  ctx.textAlign    = "left";
 
-  const maxLineW = 620;
-  const words = bodyFull.split(" ").filter(Boolean);
-  const lines = [];
-  let cur = "";
-  for (const w of words) {
-    const test = cur ? cur + " " + w : w;
-    if (ctx.measureText(test).width > maxLineW && cur) { lines.push(cur); cur = w; }
-    else cur = test;
+  // Tokenise segments into words keeping bold flag per word
+  const tokens = [];
+  for (const seg of segments) {
+    const ws = seg.text.split(" ");
+    ws.forEach((w, i) => {
+      const word = i < ws.length - 1 ? w + " " : w;
+      if (word) tokens.push({ word, bold: seg.bold });
+    });
   }
-  if (cur) lines.push(cur);
 
-  let bodyY = 182;
-  for (const line of lines) { ctx.fillText(line, cx, bodyY); bodyY += 21; }
+  // Measure helper
+  const measureWord = (t) => {
+    ctx.font = t.bold ? boldFont : normalFont;
+    return ctx.measureText(t.word).width;
+  };
+
+  // Build lines of tokens
+  const richLines = [];
+  let curLine = [], curW = 0;
+  for (const t of tokens) {
+    const w = measureWord(t);
+    if (curW + w > maxLineW && curLine.length) {
+      richLines.push(curLine);
+      curLine = [t]; curW = w;
+    } else {
+      curLine.push(t); curW += w;
+    }
+  }
+  if (curLine.length) richLines.push(curLine);
+
+  // Draw each line centered
+  let bodyY = topPad + 200;
+  for (const rline of richLines) {
+    const lineW = rline.reduce((s, t) => s + measureWord(t), 0);
+    let x = cx - lineW / 2;
+    for (const t of rline) {
+      ctx.font = t.bold ? boldFont : normalFont;
+      ctx.fillText(t.word, x, bodyY);
+      x += measureWord(t);
+    }
+    bodyY += 22;
+  }
 
   if (extraNote) {
     ctx.font = "italic 12px Georgia, serif";
@@ -168,41 +205,46 @@ async function drawCertificate(data) {
     ctx.fillText(extraNote, cx, bodyY + 5);
   }
 
-  // ── SIGNATURE BLOCK — sign centered ON stamp, moved up 20px ──
-  // lineY moved up: CERT_H - 58 (20px higher than before)
+  // ── SIGNATURE BLOCK — moved up 20px + shifted right 150px ──
+  const sigCx    = cx + 150;
   const stampSize = 90;
-  const lineY     = CERT_H - 58;
+  const lineY     = CERT_H - 78;          // 20px higher than before (was -58)
   const stampTopY = lineY - stampSize - 2;
 
   // 1. Stamp (behind)
   if (stampImg) {
     ctx.globalAlpha = 0.55;
-    ctx.drawImage(stampImg, cx - stampSize/2, stampTopY, stampSize, stampSize);
+    ctx.drawImage(stampImg, sigCx - stampSize/2, stampTopY, stampSize, stampSize);
     ctx.globalAlpha = 1;
   }
 
-  // 2. Sign ON TOP of stamp, vertically centered within stamp
+  // 2. Sign ON TOP of stamp
   if (signImg) {
     const signH = 52;
     const sw = (signImg.width / signImg.height) * signH;
     const signY = stampTopY + (stampSize - signH) / 2;
-    ctx.drawImage(signImg, cx - sw/2, signY, sw, signH);
+    ctx.drawImage(signImg, sigCx - sw/2, signY, sw, signH);
   }
 
   // 3. Underline
   ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cx-90, lineY); ctx.lineTo(cx+90, lineY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sigCx-90, lineY); ctx.lineTo(sigCx+90, lineY); ctx.stroke();
 
   // 4. SIGNATURE label
   ctx.fillStyle = "#555555";
   ctx.font = "10px Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("SIGNATURE", cx, lineY + 14);
+  ctx.fillText("SIGNATURE", sigCx, lineY + 13);
 
-  // 5. CEO label
+  // 5. CEO name
   ctx.fillStyle = "#1a1a1a";
-  ctx.font = "bold 12px Arial, sans-serif";
-  ctx.fillText("CEO, TechSign Solutions Pvt. Ltd", cx, lineY + 28);
+  ctx.font = "bold 11px Arial, sans-serif";
+  ctx.fillText("Dr. Shravan Kumar Ramadugu", sigCx, lineY + 26);
+
+  // 6. CEO title (small gap below name)
+  ctx.fillStyle = "#1a1a1a";
+  ctx.font = "bold 11px Arial, sans-serif";
+  ctx.fillText("CEO, TechSign Solutions Pvt. Ltd", sigCx, lineY + 40);
 
   return canvas;
 }
