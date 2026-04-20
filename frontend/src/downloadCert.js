@@ -206,7 +206,7 @@ async function drawCertificate(data) {
   }
 
   // ── SIGNATURE BLOCK — moved up 20px + shifted right 150px ──
-  const sigCx    = cx + 150;
+  const sigCx    = cx;
   const stampSize = 90;
   const lineY     = CERT_H - 78;          // 20px higher than before (was -58)
   const stampTopY = lineY - stampSize - 2;

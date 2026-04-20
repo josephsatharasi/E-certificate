@@ -237,8 +237,7 @@ export default function CertificateForm() {
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-yellow-400 transition">
                   <p className="text-gray-500 text-sm mb-2">Upload Excel (.xlsx), CSV (.csv)</p>
                   <p className="text-gray-400 text-xs mb-4">
-                    Required columns: <strong>Student Name</strong>, <strong>College Name</strong><br />
-                    Optional: <strong>Registration No</strong>
+                    Required columns: <strong>Student Name</strong>, <strong>College Name</strong>
                   </p>
                   <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload}
                     className="block mx-auto text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-yellow-500 file:text-white file:font-bold hover:file:bg-yellow-600 cursor-pointer" />
@@ -256,7 +255,6 @@ export default function CertificateForm() {
                           <tr>
                             <th className="px-3 py-2 text-left text-gray-600">#</th>
                             <th className="px-3 py-2 text-left text-gray-600">Name</th>
-                            <th className="px-3 py-2 text-left text-gray-600">Reg No</th>
                             <th className="px-3 py-2 text-left text-gray-600">College</th>
                           </tr>
                         </thead>
@@ -265,7 +263,6 @@ export default function CertificateForm() {
                             <tr key={i} className="border-t border-gray-100">
                               <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
                               <td className="px-3 py-1.5 font-medium text-gray-800">{s.studentName}</td>
-                              <td className="px-3 py-1.5 text-gray-500">{s.registrationNo || "—"}</td>
                               <td className="px-3 py-1.5 text-gray-500">{s.collegeName || "—"}</td>
                             </tr>
                           ))}
