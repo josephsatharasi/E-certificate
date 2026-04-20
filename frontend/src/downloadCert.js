@@ -125,9 +125,16 @@ async function drawCertificate(data) {
   ctx.font = "12px Georgia, serif";
   ctx.fillText("This certificate is proudly presented to", cx, topPad + 124);
 
-  // ── Student name ──
+  // ── Student name — auto-shrink font to fit ──
   ctx.fillStyle = "#1a1a1a";
-  ctx.font = "italic 700 38px Georgia, serif";
+  ctx.textAlign = "center";
+  const maxNameW = 620;
+  let nameFontSize = 38;
+  ctx.font = `italic 700 ${nameFontSize}px Georgia, serif`;
+  while (ctx.measureText(studentName || "").width > maxNameW && nameFontSize > 18) {
+    nameFontSize -= 1;
+    ctx.font = `italic 700 ${nameFontSize}px Georgia, serif`;
+  }
   ctx.fillText(studentName || "", cx, topPad + 168);
 
   // ── Dotted separator ──
